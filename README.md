@@ -1,11 +1,26 @@
 # OpenCode Antigravity Fix: Gemini 3.8 / 3.7 / 3.6 Flash & Pro Setup
 
-> **Instructions for AI Agents (Cursor, Claude Code, Antigravity, Copilot, Codex, OpenCode):**
-> If a user provides this file to you and asks you to fix their OpenCode setup, follow the instructions in **Section 1** below to automatically detect, patch, configure, and verify their environment.
+## 🤖 One-Click Prompt for AI Coding Agents
+
+> **Copy and paste the prompt below directly into your AI assistant (Cursor Composer, Claude Code, Antigravity, GitHub Copilot, OpenCode, Codex):**
+
+```text
+Please fix my OpenCode Antigravity setup so that Gemini 3.8, 3.7, 3.6, and 3.5 Flash & Pro models work properly without hanging or returning 404 / "model no longer available" errors. Follow these steps:
+
+1. Locate all installed instances of `opencode-antigravity-auth` (in `~/.cache/opencode/packages/` or `node_modules/`).
+2. In `model-resolver.js`, locate the `skipAlias` block and patch it so that:
+   - Any `gemini-3.[5-9]-flash` model routes to Google's active backend endpoint `"gemini-3-flash"`.
+   - Any `gemini-3.8-pro` model routes to `"gemini-3-pro-low"`.
+3. In `models.js`, register `antigravity-gemini-3.8-flash`, `antigravity-gemini-3.7-flash`, and `antigravity-gemini-3.6-flash` with thinking variants (`minimal`, `low`, `medium`, `high`).
+4. In `~/.config/opencode/antigravity-accounts.json`, check for Error #3501 validation locks (`verificationRequired: true`). Set `verificationRequired = false`, remove `cooldownReason` / `coolingDownUntil` fields, and ensure `enabled = true`.
+5. Update my project `.opencode/opencode.json` (or global `~/.config/opencode/opencode.json`) with the complete model list and variants.
+6. Verify the fix by running:
+   opencode run "Hello, respond in 5 words." --model=google/antigravity-gemini-3.7-flash --variant=medium
+```
 
 ---
 
-## 1. Instructions for AI Coding Agents
+## 1. Step-by-Step Instructions for AI Agents & Developers
 
 If you are an AI agent, execute these steps in sequence:
 
@@ -46,7 +61,7 @@ If you are an AI agent, execute these steps in sequence:
 
 ---
 
-## 2. Standalone Automated Patch Script
+## 2. Standalone Automated Patch Script (One-Click Fix)
 
 Save this script as `patch-antigravity.js` and run `node patch-antigravity.js`:
 
