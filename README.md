@@ -355,3 +355,16 @@ opencode run "Hello, respond in 5 words." --model=google/antigravity-gemini-3.6-
 # Gemini 3.1 Pro
 opencode run "Hello, respond in 5 words." --model=google/antigravity-gemini-3.1-pro --variant=low
 ```
+
+---
+
+## 6. Issues & Community Support
+
+Encountering an issue or has Google changed an API model tier?
+
+* **Open an Issue**: If an endpoint updates, Google deprecates a model, or you encounter a hang, please [Open an Issue](https://github.com/VartikAnand/opencode-gemini-3.7-flash-fix/issues) with your debug logs:
+  ```bash
+  opencode run "test prompt" --model=google/antigravity-gemini-3.7-flash --print-logs --log-level=DEBUG
+  ```
+* **Contributing**: Pull requests are welcome! If you find new backend aliases or cleaner resolver mappings, feel free to open a PR.
+* **Maintenance**: We monitor Google Antigravity backend changes and keep this patch repository up to date.
