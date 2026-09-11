@@ -14,7 +14,8 @@ Please fix my OpenCode Antigravity setup so that Gemini 3.8, 3.7, 3.6, and 3.5 F
 3. In `models.js`, register `antigravity-gemini-3.8-flash`, `antigravity-gemini-3.7-flash`, and `antigravity-gemini-3.6-flash` with thinking variants (`minimal`, `low`, `medium`, `high`).
 4. In `~/.config/opencode/antigravity-accounts.json`, check for Error #3501 validation locks (`verificationRequired: true`). Set `verificationRequired = false`, remove `cooldownReason` / `coolingDownUntil` fields, and ensure `enabled = true`.
 5. Update my project `.opencode/opencode.json` (or global `~/.config/opencode/opencode.json`) with the complete model list and variants.
-6. Verify the fix by running:
+6. If accounts were already logged in, prompt or perform an authentication refresh (`opencode auth logout` then `opencode auth login`) to flush expired sessions.
+7. Verify the fix by running:
    opencode run "Hello, respond in 5 words." --model=google/antigravity-gemini-3.7-flash --variant=medium
 ```
 
@@ -53,7 +54,14 @@ If you are an AI agent, execute these steps in sequence:
 5. **Update User `opencode.json`**:
    Ensure the user's `.opencode/opencode.json` (or `~/.config/opencode/opencode.json`) contains the model definitions shown in **Section 3**.
 
-6. **Verify with Smoke Test**:
+6. **Authentication Refresh (Crucial if already logged in)**:
+   If the user was already logged in before applying the patch, stale session tokens must be cleared:
+   ```bash
+   opencode auth logout
+   opencode auth login
+   ```
+
+7. **Verify with Smoke Test**:
    Run:
    ```bash
    opencode run "Hello, respond in 5 words." --model=google/antigravity-gemini-3.7-flash --variant=medium
@@ -206,6 +214,9 @@ if (fs.existsSync(accountsFile)) {
 }
 
 console.log('\n=== All Patches Successfully Applied ===');
+console.log('NOTE: If you were already logged in, please run:');
+console.log('  opencode auth logout');
+console.log('  opencode auth login');
 ```
 
 ---
