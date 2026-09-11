@@ -1,39 +1,59 @@
-# OpenCode Antigravity Setup, Patch & Troubleshooting Guide
+# OpenCode Antigravity Fix: Gemini 3.8 / 3.7 / 3.6 Flash & Pro Setup
 
-This guide details how to configure OpenCode and patch the `opencode-antigravity-auth` plugin to reliably use all latest Gemini 3.x Flash, Gemini Pro, and Claude thinking models.
-
----
-
-## 1. Background & Root Causes of Common Failures
-
-### Issue 1: OpenCode Hangs at `> build · antigravity-gemini-3.x-flash`
-* **Cause**: In `model-resolver.js`, any model name starting with `antigravity-gemini-3` triggers `skipAlias = true`. This bypasses `MODEL_ALIASES` and passes raw model strings like `"gemini-3.7-flash"` directly to Google's Antigravity backend API.
-* **Why it hangs**: The backend API does not recognize versioned strings like `"gemini-3.7-flash"` as backend endpoints. The SSE stream opens but emits no response, causing OpenCode to wait indefinitely.
-* **Backend Endpoint**: Google's Antigravity backend API expects **`gemini-3-flash`** for all Gemini 3 Flash models, accompanied by the `thinkingLevel` parameter (`minimal`, `low`, `medium`, `high`).
-
-### Issue 2: Error "Gemini 3.5 Flash is no longer available"
-* **Cause**: Early patch guides recommended aliasing all flash variants down to `gemini-3.5-flash-low`. Google has decommissioned this endpoint.
-* **Fix**: Route all Flash requests to Google's active endpoint **`gemini-3-flash`**.
-
-### Issue 3: Infinite Background Auth Retries (Error #3501)
-* **Cause**: In `~/.config/opencode/antigravity-accounts.json`, accounts may get flagged with:
-  ```json
-  "verificationRequired": true,
-  "cooldownReason": "validation-required"
-  ```
-* **Why it hangs**: If an account enters validation cooldown, `opencode-antigravity-auth` repeatedly triggers background verification loops during non-interactive runs.
-* **Fix**: Reset `verificationRequired` to `false` and clear cooldown fields.
+> **Instructions for AI Agents (Cursor, Claude Code, Antigravity, Copilot, Codex, OpenCode):**
+> If a user provides this file to you and asks you to fix their OpenCode setup, follow the instructions in **Section 1** below to automatically detect, patch, configure, and verify their environment.
 
 ---
 
-## 2. Automated Patch Script (One-Click / AI Agent Executable)
+## 1. Instructions for AI Coding Agents
 
-Save the following script as `patch-antigravity.js` and execute with `node patch-antigravity.js`:
+If you are an AI agent, execute these steps in sequence:
+
+1. **Locate Installed Plugin Files**:
+   Search for `model-resolver.js` and `models.js` in:
+   - `~/.cache/opencode/packages/opencode-antigravity-auth@beta/node_modules/opencode-antigravity-auth/dist/`
+   - `~/.cache/opencode/packages/opencode-antigravity-auth@latest/node_modules/opencode-antigravity-auth/dist/`
+   - Any local `node_modules/opencode-antigravity-auth/dist/`
+
+2. **Patch `model-resolver.js`**:
+   - In the `skipAlias` branch, Google Antigravity backend API expects **`gemini-3-flash`** for all Gemini 3 Flash models (NOT `gemini-3.7-flash` or the deprecated `gemini-3.5-flash-low`).
+   - Map all `gemini-3.x-flash` models to `"gemini-3-flash"`.
+   - Map `gemini-3.8-pro` to `"gemini-3-pro-low"`.
+   - Example patch replacement:
+     ```javascript
+     let antigravityModel = modelWithoutQuota;
+     if (/^gemini-3\.[5-9]-flash/i.test(modelWithoutQuota)) {
+         antigravityModel = "gemini-3-flash";
+     } else if (/^gemini-3\.8-pro/i.test(modelWithoutQuota)) {
+         antigravityModel = "gemini-3-pro-low";
+     }
+     ```
+
+3. **Patch `models.js`**:
+   Ensure `antigravity-gemini-3.8-flash`, `antigravity-gemini-3.7-flash`, and `antigravity-gemini-3.6-flash` are registered with thinking variants (`minimal`, `low`, `medium`, `high`).
+
+4. **Clear Account Validation Locks**:
+   In `~/.config/opencode/antigravity-accounts.json`, check if accounts have `"verificationRequired": true` or `"cooldownReason": "validation-required"`. Set `verificationRequired = false`, remove cooldown fields, and ensure `enabled = true`.
+
+5. **Update User `opencode.json`**:
+   Ensure the user's `.opencode/opencode.json` (or `~/.config/opencode/opencode.json`) contains the model definitions shown in **Section 3**.
+
+6. **Verify with Smoke Test**:
+   Run:
+   ```bash
+   opencode run "Hello, respond in 5 words." --model=google/antigravity-gemini-3.7-flash --variant=medium
+   ```
+
+---
+
+## 2. Standalone Automated Patch Script
+
+Save this script as `patch-antigravity.js` and run `node patch-antigravity.js`:
 
 ```javascript
 /**
  * Automated patch script for opencode-antigravity-auth
- * Patches models.js, model-resolver.js, and antigravity-accounts.json
+ * Cross-platform: Windows, macOS, Linux
  */
 const fs = require('fs');
 const path = require('path');
@@ -71,7 +91,7 @@ console.log(`Found ${resolverFiles.length} model-resolver.js file(s).`);
 for (const file of resolverFiles) {
   let content = fs.readFileSync(file, 'utf8');
 
-  // Replace legacy/deprecated mapping to gemini-3.5-flash-low with active gemini-3-flash
+  // Replace legacy or non-working endpoints with active gemini-3-flash
   content = content.replace(/gemini-3\.5-flash-low/g, 'gemini-3-flash');
   content = content.replace(/gemini-3\.7-flash/g, 'gemini-3-flash');
 
@@ -139,7 +159,7 @@ for (const file of modelFiles) {
   }
 }
 
-// 3. Reset validation lock in antigravity-accounts.json
+// 3. Reset validation locks in antigravity-accounts.json
 const accountsFile = path.join(configDir, 'antigravity-accounts.json');
 if (fs.existsSync(accountsFile)) {
   try {
@@ -175,9 +195,9 @@ console.log('\n=== All Patches Successfully Applied ===');
 
 ---
 
-## 3. OpenCode Configuration (`opencode.json`)
+## 3. Recommended `opencode.json`
 
-Ensure your workspace or global config contains the model definitions with thinking variants:
+Add this to your project `.opencode/opencode.json` or global `~/.config/opencode/opencode.json`:
 
 ```json
 {
@@ -294,20 +314,29 @@ Ensure your workspace or global config contains the model definitions with think
 
 ---
 
-## 4. Verification Commands
+## 4. Root Causes & Technical Details
 
-Test each model family to confirm instant streaming without hanging:
+1. **Why `> build · antigravity-...` Hangs**:
+   In `model-resolver.js`, models starting with `antigravity-gemini-3` set `skipAlias = true`. This skips alias translation and sends unrecognized raw strings (like `"gemini-3.7-flash"`) directly to Google's API, causing the stream to hang indefinitely. Mapping all Flash models to `"gemini-3-flash"` fixes this.
+2. **"Gemini 3.5 Flash is no longer available"**:
+   Google decommissioned `gemini-3.5-flash-low` on the backend. The active endpoint is `gemini-3-flash`.
+3. **Error #3501 (Validation Required)**:
+   If an account enters cooldown, `verificationRequired: true` causes the background proxy to loop infinitely. Clearing cooldown flags restores normal streaming.
+
+---
+
+## 5. Verification Commands
 
 ```bash
-# Gemini 3.7 Flash (Medium Variant)
+# Gemini 3.7 Flash
 opencode run "Hello, respond in 5 words." --model=google/antigravity-gemini-3.7-flash --variant=medium
 
-# Gemini 3.8 Flash (High Variant)
+# Gemini 3.8 Flash
 opencode run "Hello, respond in 5 words." --model=google/antigravity-gemini-3.8-flash --variant=high
 
-# Gemini 3.6 Flash (Minimal Variant)
+# Gemini 3.6 Flash
 opencode run "Hello, respond in 5 words." --model=google/antigravity-gemini-3.6-flash --variant=minimal
 
-# Gemini 3.1 Pro (Low Variant)
+# Gemini 3.1 Pro
 opencode run "Hello, respond in 5 words." --model=google/antigravity-gemini-3.1-pro --variant=low
 ```
